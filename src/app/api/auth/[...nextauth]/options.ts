@@ -5,8 +5,16 @@ import dbConnect from "@/lib/dbConnect";
 import UserModel, { User as AppUser } from "@/model/User";
 import { RequestInternal } from "next-auth";
 
-type Credentials = { email: string; password: string };
 
+interface AuthorizedUser {
+  id: string;
+  name: string;
+  email: string;
+  _id: string;
+  username: string;
+  isVerified: boolean;
+  isAcceptingMessages: boolean;
+}
 interface ExtendedToken {
     _id?: string;
     isVerified?: boolean;
@@ -31,9 +39,9 @@ export const authOptions: NextAuthOptions = {
                 password: { label: "Password", type: "password" },
             },
             async authorize(
-              credentials: Record<"email" | "password", string> | undefined,
-              req: Pick<RequestInternal, "body" | "query" | "headers" | "method">
-            ): Promise<any> {
+              credentials: Record<"email" | "password", string> | undefined
+              
+            ): Promise<AuthorizedUser | null> {
               await dbConnect();
             
               try {
