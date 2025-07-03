@@ -72,7 +72,7 @@ export default function SendMessage() {
       const res = await axios.post('/api/suggest-message');
 
       if (res.data.text) {
-        const parsed = res.data.text.split('||').map(msg => msg.trim());
+        const parsed = res.data.text.split('||').map((msg: string) => msg.trim());
         setSuggestions(parsed);
         toast.success('Suggested messages loaded');
       } else {
