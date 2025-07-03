@@ -4,18 +4,18 @@ import { useForm } from "react-hook-form"
 import * as z  from 'zod'
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import {useDebounceValue, useDebounceCallback} from "usehooks-ts"
+import { useDebounceCallback} from "usehooks-ts"
 import { toast } from "sonner"
 import { useRouter } from 'next/navigation';
 import { signupSchema } from "@/schemas/signUpSchema"
 import axios,{AxiosError} from 'axios'
 import { ApiResponse } from "@/types/ApiResponse"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl,  FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Loader2 } from 'lucide-react';
 
-function page() {
+function Page() {
   const [username,setUsername] = useState('')
   const [usernameMessage, setUsernameMessage] = useState('')
   const [isCheckingUsername, setIsCheckingUsername] = useState(false)
@@ -72,7 +72,7 @@ function page() {
       const axiosError = error as AxiosError<ApiResponse>;
 
   
-      let errorMessage = axiosError.response?.data.message;
+      const errorMessage = axiosError.response?.data.message;
       ('There was a problem with your sign-up. Please try again.');
 
       toast.error(errorMessage);
@@ -179,4 +179,4 @@ function page() {
   )
 }
 
-export default page
+export default Page
