@@ -96,7 +96,7 @@ export async function GET() {
             }
         )   
     } catch (error) {
-        console.log("Error in gettin accept message status");
+        console.log("Error in gettin accept message status",error);
         return Response.json(
             {
                 sucsess:false,
