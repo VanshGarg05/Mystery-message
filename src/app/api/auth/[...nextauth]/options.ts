@@ -1,9 +1,25 @@
-import { NextAuthOptions } from "next-auth";
+import { NextAuthOptions, User as NextAuthUser } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/dbConnect";
-import UserModel from "@/model/User";
-import { User } from "@/model/User"; // Adjust path if your User interface/type is elsewhere
+import UserModel, { User as AppUser } from "@/model/User";
+import { RequestInternal } from "next-auth";
+
+type Credentials = { email: string; password: string };
+
+interface ExtendedToken {
+    _id?: string;
+    isVerified?: boolean;
+    isAcceptingMessages?: boolean;
+    username?: string;
+}
+
+interface ExtendedSessionUser extends NextAuthUser {
+    _id?: string;
+    isVerified?: boolean;
+    isAcceptingMessages?: boolean;
+    username?: string;
+}
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -14,58 +30,71 @@ export const authOptions: NextAuthOptions = {
                 email: { label: "Email", type: "text" },
                 password: { label: "Password", type: "password" },
             },
-            async authorize(credentials) {
-                await dbConnect();
-
-                try {
-                    const user = await UserModel.findOne({
-                        $or: [
-                            { email: credentials?.email },
-                            { username: credentials?.email },
-                        ],
-                    }).lean(); // ✅ plain JS object, not Mongoose Document
-
-                    if (!user) {
-                        return null; // ✅ Return null if user not found
-                    }
-
-                    if (!user.isVerified) {
-                        throw new Error("Please verify your account before logging in");
-                    }
-
-                    const isPasswordCorrect = await bcrypt.compare(
-                        credentials!.password,
-                        user.password
-                    );
-
-                    if (!isPasswordCorrect) {
-                        throw new Error("Incorrect password");
-                    }
-
-                    return user as unknown as User; // ✅ Explicitly type to User
-                } catch (error) {
-                    console.error("Authorize error:", error);
-                    return null; // ✅ Avoid undefined returns
+            async authorize(
+              credentials: Record<"email" | "password", string> | undefined,
+              req: Pick<RequestInternal, "body" | "query" | "headers" | "method">
+            ): Promise<any> {
+              await dbConnect();
+            
+              try {
+                const user = await UserModel.findOne({
+                  $or: [
+                    { email: credentials?.email },
+                    { username: credentials?.email },
+                  ],
+                }).lean();
+            
+                if (!user) return null;
+                if (!user.isVerified) {
+                  throw new Error("Please verify your account before logging in");
                 }
+            
+                const isPasswordCorrect = await bcrypt.compare(
+                  credentials!.password,
+                  user.password
+                );
+            
+                if (!isPasswordCorrect) {
+                  throw new Error("Incorrect password");
+                }
+            
+                return {
+                  id: user._id?.toString(),
+                  name: user.username,
+                  email: user.email,
+                  _id: user._id?.toString(),
+                  username: user.username,
+                  isVerified: user.isVerified,
+                  isAcceptingMessages: user.isAcceptingMessages,
+                };
+              } catch (error) {
+                console.error("Authorize error:", error);
+                return null;
+              }
             },
+            
         }),
     ],
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                token._id = (user )._id?.toString();
-                token.isVerified = (user ).isVerified;
-                token.isAcceptingMessages = (user ).isAcceptingMessages;
-                token.username = (user ).username;
+                const extendedToken = token as ExtendedToken;
+                const appUser = user as AppUser & { _id?: string };
+                extendedToken._id = appUser._id;
+                extendedToken.isVerified = appUser.isVerified;
+                extendedToken.isAcceptingMessages = appUser.isAcceptingMessages;
+                extendedToken.username = appUser.username;
             }
             return token;
         },
         async session({ session, token }) {
-            if (token && session.user) {
-                session.user._id = token._id;
-                session.user.isVerified = token.isVerified;
-                session.user.isAcceptingMessages = token.isAcceptingMessages;
-                session.user.username = token.username;
+            if (session.user) {
+                const user = session.user as ExtendedSessionUser;
+                const extendedToken = token as ExtendedToken;
+                user._id = extendedToken._id;
+                user.isVerified = extendedToken.isVerified;
+                user.isAcceptingMessages = extendedToken.isAcceptingMessages;
+                user.username = extendedToken.username;
             }
             return session;
         },
