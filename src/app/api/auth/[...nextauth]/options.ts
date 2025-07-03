@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/dbConnect";
 import UserModel, { User as AppUser } from "@/model/User";
-import { RequestInternal } from "next-auth";
+
 
 
 interface AuthorizedUser {
